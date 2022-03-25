@@ -34,8 +34,9 @@ class DEETaskSetting(TaskSetting):
         ('local_rank', -1),
         ('seed', 99),
         ('optimize_on_cpu', False),
-        ('fp16', False),
-        ('bert_model', 'bert-base-chinese'),  # use which pretrained bert model
+        ('fp16', True),
+        #('bert_model', 'bert-base-chinese'),  # use which pretrained bert model
+        ('bert_model', './dee/Finbert'),
         ('only_master_logging', True),  # whether to print logs from multiple processes
         ('resume_latest_cpt', True),  # whether to resume latest checkpoints when training for fault tolerance
         ('cpt_file_name', 'GIT'),  # decide the identity of checkpoints, evaluation results, etc.
@@ -85,12 +86,19 @@ class DEETask(BasePytorchTask):
         self.example_loader_func = DEEExampleLoader(self.setting.rearrange_sent, self.setting.max_sent_len)
 
         # build feature converter
+        #not use_bert
+        # self.feature_converter_func = DEEFeatureConverter(
+        #     self.entity_label_list, self.event_type_fields_pairs,
+        #     self.setting.max_sent_len, self.setting.max_sent_num, self.tokenizer,
+        #     include_cls=False, include_sep=False,
+        # )
+
+        #use_bert
         self.feature_converter_func = DEEFeatureConverter(
             self.entity_label_list, self.event_type_fields_pairs,
             self.setting.max_sent_len, self.setting.max_sent_num, self.tokenizer,
-            include_cls=False, include_sep=False,
+            include_cls=True, include_sep=True,
         )
-
         # LOAD DATA
         # self.example_loader_func: raw data -> example
         # self.feature_converter_func: example -> feature
@@ -102,9 +110,26 @@ class DEETask(BasePytorchTask):
         self.custom_collate_fn = prepare_doc_batch_dict
 
         self.setting.num_entity_labels = len(self.entity_label_list)
+        #not use_bert
+        #ner_model = None
 
-        ner_model = None
+        #use_bert
+        ner_model = BertForBasicNER.from_pretrained(
+            self.setting.bert_model, num_entity_labels = self.setting.num_entity_labels
+        )
+        self.setting.update_by_dict(ner_model.config.__dict__)  # BertConfig dictionary
 
+        # substitute pooler in bert to support distributed training
+        # because unused parameters will cause errors when conducting distributed all_reduce
+        class PseudoPooler(object):
+            def __init__(self):
+                pass
+
+            def __call__(self, *x):
+                return x
+        del ner_model.bert.pooler
+        ner_model.bert.pooler = PseudoPooler()        
+        
         self.model = GITModel(
             self.setting, self.event_type_fields_pairs, ner_model=ner_model,
         )

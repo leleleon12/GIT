@@ -1,11 +1,11 @@
 #! /bin/bash
 
-GPU=0
+GPU=0,1
 DATA_DIR=./Data
 EXP_DIR=./Exps
 COMMON_TASK_NAME=try
 EVAL_BS=2
-NUM_GPUS=1
+NUM_GPUS=2
 MODEL_STR=GIT
 
 echo "---> ${MODEL_STR} Run"

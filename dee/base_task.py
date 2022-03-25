@@ -28,12 +28,13 @@ elif PY3:
     container_abcs = collections.abc
 
 logger = logging.getLogger(__name__)
-
+model_path='./Finbert'
 class TaskSetting(object):
     """Base task setting that can be initialized with a dictionary"""
     base_key_attrs = ['data_dir', 'model_dir', 'output_dir']
     base_attr_default_pairs = [
-        ('bert_model', 'bert-base-chinese'),
+        #('bert_model', 'bert-base-chinese'),
+        ('bert_model', './dee/Finbert'),
         ('train_file_name', 'train.json'),
         ('dev_file_name', 'dev.json'),
         ('test_file_name', 'test.json'),
@@ -48,7 +49,7 @@ class TaskSetting(object):
         ('seed', 99),
         ('gradient_accumulation_steps', 1),
         ('optimize_on_cpu', False),
-        ('fp16', False),
+        ('fp16', True),
         ('loss_scale', 128),
         ('cpt_file_name', 'task.cpt'),
         ('summary_dir_name', '/root/summary'),
@@ -480,6 +481,7 @@ class BasePytorchTask(object):
         self.logging("\tTotal examples Num = {}".format(len(self.train_examples)))
         self.logging("\tBatch size = {}".format(self.setting.train_batch_size))
         self.logging("\tNum steps = {}".format(self.num_train_steps))
+        self.logging("\tbert model:{}".format(self.setting.bert_model))
         if self.in_distributed_mode():
             self.logging("\tWorker Batch Size = {}".format(train_batch_size))
         self._init_summary_writer()
@@ -561,7 +563,8 @@ class BasePytorchTask(object):
 
                     self.model.zero_grad()
                     global_step += 1
-
+                del loss,batch
+                torch.cuda.empty_cache()    
             if epoch_eval_func is not None:
                 epoch_eval_func(self, epoch_idx + 1, **kwargs_dict2)
 

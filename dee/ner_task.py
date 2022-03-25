@@ -283,7 +283,8 @@ class NERTaskSetting(TaskSetting):
     def __init__(self, **kwargs):
         ner_key_attrs = []
         ner_attr_default_pairs = [
-            ('bert_model', 'bert-base-chinese'),
+            #('bert_model', 'bert-base-chinese'),
+            ('bert_model', './dee/Finbert'),
             ('train_file_name', 'train.json'),
             ('dev_file_name', 'dev.json'),
             ('test_file_name', 'test.json'),
@@ -298,7 +299,7 @@ class NERTaskSetting(TaskSetting):
             ('seed', 99),
             ('gradient_accumulation_steps', 1),
             ('optimize_on_cpu', True),
-            ('fp16', False),
+            ('fp16', True),
             ('loss_scale', 128),
             ('cpt_file_name', 'ner_task.cpt'),
             ('summary_dir_name', '/tmp/summary'),
